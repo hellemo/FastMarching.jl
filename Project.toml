@@ -1,0 +1,7 @@
+name = "FastMarching"
+uuid = "7c16e180-9f04-11e8-24a6-e7c7f74617b0"
+authors = ["Lars Hellemo <hellemo@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
