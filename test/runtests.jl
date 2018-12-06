@@ -1,6 +1,10 @@
 using FastMarching
-using Base.Test
-using LinearAlgebra
+@static if VERSION >= v"0.7-"
+  using Test
+  using LinearAlgebra
+else
+  using Base.Test
+end
 
 function eye(n)
   fill(0,(n,n))+I
@@ -15,22 +19,13 @@ function testeye(n::Integer,endpoint=[1.,1.],stepsize=0.1)
   shortestline = FastMarching.shortestpath(distancemap,endpoint,source,0.1)
 end
 
-function runtests()
-  const endpoint = [1.,1.]
-  for t in 2:2:10, stepsize in [0.1,0.01]
-    println("size: $(lpad(t,2," ")) stepsize: $(rpad(string(stepsize),4,"0"))")
-    shortestline = testeye(t,endpoint,stepsize)
-    @test sum(shortestline[:,2]-shortestline[:,1]) == 0
-    @test sqrt((shortestline[1,1]-1.)^2-(shortestline[1,2]-1.)^2) <= stepsize
-  end
-
-  try
-    rm("multiplestarts.png")
-  end
-  include(joinpath(Pkg.dir("FastMarching"),"examples/multiplestart.jl"))
-  @test isfile("multiplestart.png")
-
-
+endpoint = [1.,1.]
+@testset "testeye" begin
+@testset "size: $t stepsize: $stepsize"  for t in 2:2:10, stepsize in [0.1,0.01]
+  shortestline = testeye(t,endpoint,stepsize)
+  @test sum(shortestline[:,2]-shortestline[:,1]) == 0
+  @test sqrt((shortestline[1,1]-1.)^2-(shortestline[1,2]-1.)^2) <= stepsize
+end
 end
 
-runtests()
+include(joinpath(@__DIR__, "multiplestarts.jl"))
