@@ -19,7 +19,7 @@ function shortestpath(distancemap::AbstractArray{T},startpoint::AbstractArray{T}
     i=0
     # Reserve a block of memory for the shortest line array
     ifree=size(distancemap,1) * 2
-    ShortestLine=zeros(ifree,ndims(distancemap))
+    ShortestLine=zeros(T,ifree,ndims(distancemap))
 
     # Iteratively trace the shortest line
     while true
