@@ -1,4 +1,3 @@
-# TODO: Check usefulness/relevant size of neg_free
 """
 	msfm()
 	
@@ -21,61 +20,21 @@
 	  UseCross : Boolean Set to true if also cross neighbours
 	               are used (default)
 	# outputs
-	  T : Image with distance from SourcePoints to all pixels
-	
-	# Literature
-	  M. Sabry Hassouna et Al. Multistencils Fast Marching
-	  Methods: A Highly Accurate Solution to the Eikonal Equation on
-	  Cartesian Domains
-	
-	# Example
-	  SourcePoint = [51; 51];
-	  SpeedImage = ones([101 101]);
-	  [X Y] = ndgrid(1:101, 1:101);
-	  T1 = sqrt((X-SourcePoint(1)).^2 + (Y-SourcePoint(2)).^2);
-	
-	  # Run fast marching 1th order, 1th order multi stencil
-	  # and 2th orde and 2th orde multi stencil
-	
-	  tic; T1_FMM1 = msfm2d(SpeedImage, SourcePoint, false, false); toc;
-	  tic; T1_MSFM1 = msfm2d(SpeedImage, SourcePoint, false, true); toc;
-	  tic; T1_FMM2 = msfm2d(SpeedImage, SourcePoint, true, false); toc;
-	  tic; T1_MSFM2 = msfm2d(SpeedImage, SourcePoint, true, true); toc;
-	
-	  # Show results
-	  fprintf('\nResults with T1 (Matlab)\n');
-	  fprintf('Method   L1        L2        Linf\n');
-	  Results = cellfun(@(x)([mean(abs(T1(:)-x(:))) mean((T1(:)-x(:)).^2) max(abs(T1(:)-x(:)))]), {T1_FMM1(:) T1_MSFM1(:) T1_FMM2(:) T1_MSFM2(:)}, 'UniformOutput',false);
-	  fprintf('FMM1:   %9.5f %9.5f %9.5f\n', Results{1}(1), Results{1}(2), Results{1}(3));
-	  fprintf('MSFM1:  %9.5f %9.5f %9.5f\n', Results{2}(1), Results{2}(2), Results{2}(3));
-	  fprintf('FMM2:   %9.5f %9.5f %9.5f\n', Results{3}(1), Results{3}(2), Results{3}(3));
-	  fprintf('MSFM2:  %9.5f %9.5f %9.5f\n', Results{4}(1), Results{4}(2), Results{4}(3));
-	
-	# Example multiple starting points,
-	  SourcePoint=rand(2,100)*255+1;
-	  SpeedImage = ones([256 256]);
-	  tic; T1_MSFM2 = msfm2d(SpeedImage, SourcePoint, true, true); toc;
-	  figure, imshow(T1_MSFM2,[]); colormap(hot(256));
-	
-	  # Credit
-	  Function is written by D.Kroon University of Twente (June 2009)
-	  Port from Matlab to Julia by Lars Hellemo (May 2014)
+	  T : Image with distance from SourcePoints to all pixels	
 """
-function msfm(F::Array{Float64,2}, SourcePoints, usesecond::Bool, usecross::Bool,Ed=false::Bool)
-	
-	# Distance image, also used to store the index of narrowband pixels
-	# during marching process
-	T = fill(-1.0,size(F))
+function msfm(speedimage::AbstractArray{T,2}, SourcePoints::AbstractArray{T}, usesecond::Bool=true, usecross::Bool=true,Ed=false::Bool) where T
+
+	distanceimage = fill(T(-1.0),size(speedimage))
 	# Augmented Fast Marching (For skeletonize)
 	#Ed=false # Was: nargout>1;
 
 	# Euclidian distance image
 	if(Ed)
-		Y = zeros(size(F))
+		Y = zeros(T,size(speedimage))
 	end
 
 	# Pixels which are processed and have a final distance are frozen
-	Frozen   = falses(size(F));
+	Frozen   = falses(size(speedimage));
 
 	# Free memory to store neighbours of the (segmented) region
 	neg_free = 100000
@@ -91,7 +50,7 @@ function msfm(F::Array{Float64,2}, SourcePoints, usesecond::Bool, usecross::Bool
 	#   - narrow band (boundary) (in list to check for the next pixel with smallest distance)
 	#   - far (not yet used)
 
-	# Neighbours
+ 	# Neighbours
 	ne =[-1 0;
 	1 0;
 	0 -1;
@@ -107,10 +66,8 @@ function msfm(F::Array{Float64,2}, SourcePoints, usesecond::Bool, usecross::Bool
 		y= SourcePoints[2,z]
 		# Set starting point to frozen and distance to zero
 		Frozen[x,y]=true
-		T[x,y]=0
+		distanceimage[x,y]=zero(T)
 	end
-
-
 
 
 	# Add all neighbours of the starting points to narrow list
@@ -124,16 +81,16 @@ function msfm(F::Array{Float64,2}, SourcePoints, usesecond::Bool, usecross::Bool
 			j=y+ne[k,2]
 			# Check if current neighbour is not yet frozen and inside the
 			# picture
-			if((i>0)&&(j>0)&&(i<=size(F,1))&&(j<=size(F,2))&&(~Frozen[i,j]))
-				Tt=1/max(F[i,j],eps())
+			if((i>0)&&(j>0)&&(i<=size(speedimage,1))&&(j<=size(speedimage,2))&&(~Frozen[i,j]))
+				Tt=1/max(speedimage[i,j],eps())
 				Ty=1;
 				# Update distance in neigbour list or add to neigbour list
-				if T[i,j]>0
-					if neg_list[1,T[i,j]]>Tt
-						neg_list[1,T[i,j]]=Tt
+				if distanceimage[i,j]>zero(T)
+					if neg_list[1,distanceimage[i,j]]>Tt
+						neg_list[1,distanceimage[i,j]]=Tt
 					end
 					if Ed
-						neg_list[4,T[i,j]]=min(Ty,neg_list[4,T[i,j]]);
+						neg_list[4,distanceimage[i,j]]=min(Ty,neg_list[4,distanceimage[i,j]]);
 					end
 				else
 					neg_pos=neg_pos+1
@@ -147,11 +104,11 @@ function msfm(F::Array{Float64,2}, SourcePoints, usesecond::Bool, usecross::Bool
 						end
 					end
 					if Ed
-						neg_list[:,neg_pos]=[Tt;i;j;Ty]
+						@views neg_list[:,neg_pos]=[Tt;i;j;Ty]
 					else
-						neg_list[:,neg_pos]=[Tt;i;j]
+						@views neg_list[:,neg_pos]=[Tt;i;j]
 					end
-					T[i,j]=neg_pos
+					distanceimage[i,j]=neg_pos
 				end
 			end
 		end
@@ -159,7 +116,7 @@ function msfm(F::Array{Float64,2}, SourcePoints, usesecond::Bool, usecross::Bool
 
 
 	# Loop through all pixels of the image
-	for itt=1:length(F)
+	for itt=1:length(speedimage)
 		# Get the pixel from narrow list (boundary list) with smallest
 		# distance value and set it to current pixel location
 
@@ -171,7 +128,7 @@ function msfm(F::Array{Float64,2}, SourcePoints, usesecond::Bool, usecross::Bool
 		y=round(Int,neg_list[3,index])
 		Frozen[x,y]=true
 		# T[x,y]=round(Int,neg_list[1,index])
-		T[x,y]=neg_list[1,index]
+		distanceimage[x,y]=neg_list[1,index]
 
 		if Ed
 			Y[x,y]=neg_list[4,index]
@@ -179,10 +136,10 @@ function msfm(F::Array{Float64,2}, SourcePoints, usesecond::Bool, usecross::Bool
 
 		# Remove min value by replacing it with the last value in the array
 		if index<neg_pos
-			neg_list[:,index]=neg_list[:,neg_pos]
+			@views neg_list[:,index]=neg_list[:,neg_pos]
 			x2=round(Int,neg_list[2,index])
 			y2=round(Int,neg_list[3,index])
-			T[x2,y2]=index
+			distanceimage[x2,y2]=index
 		end
 		neg_pos =neg_pos-1
 
@@ -194,18 +151,18 @@ function msfm(F::Array{Float64,2}, SourcePoints, usesecond::Bool, usecross::Bool
 
 			# Check if current neighbour is not yet frozen and inside the
 			# picture
-			if (i>0)&&(j>0)&&(i<=size(F,1))&&(j<=size(F,2))&&(~Frozen[i,j])
+			if (i>0)&&(j>0)&&(i<=size(speedimage,1))&&(j<=size(speedimage,2))&&(~Frozen[i,j])
 
-				Tt=CalculateDistance(T,F[i,j],size(F),i,j,usesecond,usecross,Frozen)
+				Tt=CalculateDistance(distanceimage,speedimage[i,j],size(speedimage),i,j,usesecond,usecross,Frozen)
 				if Ed
-					Ty=CalculateDistance(Y,1,size(F),i,j,usesecond,usecross,Frozen)
+					Ty=CalculateDistance(Y,1,size(speedimage),i,j,usesecond,usecross,Frozen)
 				end
 
 				# Update distance in neigbour list or add to neigbour list
-				if T[i,j]>0
-					neg_list[1,round(Int,T[i,j])]=minimum([Tt,neg_list[1,round(Int,T[i,j])]])
+				if distanceimage[i,j]>0
+					neg_list[1,round(Int,distanceimage[i,j])]=minimum([Tt,neg_list[1,round(Int,distanceimage[i,j])]])
 					if Ed
-						neg_list[4,round(Int,T[i,j])]=minimum([Ty,neg_list[4,round(Int,T[i,j])]])
+						neg_list[4,round(Int,distanceimage[i,j])]=minimum([Ty,neg_list[4,round(Int,distanceimage[i,j])]])
 					end
 				else
 					neg_pos=neg_pos+1
@@ -220,17 +177,17 @@ function msfm(F::Array{Float64,2}, SourcePoints, usesecond::Bool, usecross::Bool
 						end
 					end
 					if Ed
-						neg_list[:,neg_pos]=[Tt;i;j;Ty]
+						@views neg_list[:,neg_pos]=[Tt;i;j;Ty]
 					else
-						neg_list[:,neg_pos]=[Tt;i;j]
+						@views neg_list[:,neg_pos]=[Tt;i;j]
 					end
-					T[i,j]=neg_pos
+					distanceimage[i,j]=neg_pos
 				end
 			end
 		end
 	end
 
-	return T
+	return distanceimage
 
 end # End function msfm
 
@@ -241,8 +198,8 @@ end # End function msfm
 
 
 function CalculateDistance(T,Fij,sizeF,i,j,usesecond,usecross,Frozen)
-	#  Tpatch=infs(5,5)
-	Tpatch = fill(Inf,(5,5))
+	
+	Tpatch = fill(eltype(T)(Inf),(5,5))
 	for nx = -2:2
 		for ny = -2:2
 			i_n = i + nx
@@ -406,27 +363,3 @@ function roots(Coeff)
 		z[2]= (2.0*c)/(-b + sqrt(d))
 	end
 end
-
-
-function run_test()
-	#	 include("ndgrid.jl")
-
-	# Example/test
-	#SourcePoint = [51; 51]
-	#SpeedImage = ones(101, 101)
-	#XY = ndgrid(1:101, 1:101)
-	#T1 = sqrt((XY[1]-SourcePoint[1]).^2 + (XY[2]-SourcePoint[2]).^2)
-	#tic()
-	#T1_MSFM2 = msfm2d(SpeedImage, SourcePoint, true, true)
-	#toc()
-
-	# Example multiple starting points,
-	SourcePoint=rand(2,100)*255+1
-	SpeedImage = ones(256, 256)
-	tic()
-	T1_MSFM2 = msfm(SpeedImage, SourcePoint, true, true)
-	toc()
-	writecsv("tmp.csv",T1_MSFM2)
-end
-
-#    run_test()
