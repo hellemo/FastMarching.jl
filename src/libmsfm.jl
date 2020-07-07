@@ -24,10 +24,10 @@
 """
 function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, usesecond::Bool=true, usecross::Bool=true,Ed=false::Bool) where T
 
-	distanceimage = fill(T(-1.0),size(speedimage))
+	distanceimage = zeros(T,size(speedimage))
+	fill!(distanceimage,T(-Inf))
 	# Augmented Fast Marching (For skeletonize)
-	#Ed=false # Was: nargout>1;
-
+	
 	# Euclidian distance image
 	if(Ed)
 		Y = zeros(T,size(speedimage))
@@ -37,12 +37,12 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, 
 	Frozen   = falses(size(speedimage));
 
 	# Free memory to store neighbours of the (segmented) region
-	neg_free = 100000
-	neg_pos=0
+	neg_free = length(speedimage)
+	neg_pos = 0
 	if Ed
-		neg_list = zeros(4,neg_free)
+		neg_list = zeros(T,4,neg_free)
 	else
-		neg_list = zeros(3,neg_free)
+		neg_list = zeros(T,3,neg_free)
 	end
 
 	# (There are 3 pixel classes:
@@ -95,11 +95,11 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, 
 					neg_pos=neg_pos+1
 					# If running out of memory at a new block
 					if neg_pos>neg_free
-						neg_free = neg_free + 100_000
+						neg_free = neg_free * 2
 						if Ed
-							neg_list = hcat(neg_list, zeros(4,neg_free))
+							neg_list = hcat(neg_list, zeros(T,4,neg_free))
 						else
-							neg_list = hcat(neg_list, zeros(3,neg_free))
+							neg_list = hcat(neg_list, zeros(T,3,neg_free))
 						end
 					end
 					if Ed
@@ -121,13 +121,13 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, 
 	Coeff = zeros(T,3)
 	TT = zeros(T,2)
 	TT2 = zeros(T,2)
-
+	
 	# Loop through all pixels of the image
 	for itt = 1:length(speedimage)
 		# Get the pixel from narrow list (boundary list) with smallest
 		# distance value and set it to current pixel location
 
-		if neg_pos==0
+		if neg_pos == 0
 			break
 		end
 		(t,index) = findmin(neg_list[1,1:neg_pos])
@@ -148,7 +148,6 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, 
 			distanceimage[x2,y2] = index
 		end
 		neg_pos = neg_pos-1
-
 		# Loop through all 4 neighbours of current pixel
 		for k = 1:4
 			# Location of neighbour
@@ -164,27 +163,30 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, 
 					Ty = calculatedistance!(Y, Tpatch, Order, Coeff, Tm, Tm2, TT, TT2, speedimage[i,j], size(speedimage), i, j, usesecond, usecross, Frozen)
 				end
 
-				# Update distance in neigbour list or add to neigbour list
+				# Update distance in neighbour list or add to neighbour list
 				if distanceimage[i,j]>0
-					neg_list[1,round(Int,distanceimage[i,j])] = minimum((Tt,neg_list[1,round(Int,distanceimage[i,j])]))
-					if Ed
-						neg_list[4,round(Int,distanceimage[i,j])] = minimum((Ty,neg_list[4,round(Int,distanceimage[i,j])]))
+					if Tt !== nothing
+						neg_list[1,round(Int,distanceimage[i,j])] = min(Tt, neg_list[1,round(Int,distanceimage[i,j])] )
+					end
+					if Ed && (Tt !== nothing)
+						neg_list[4,round(Int,distanceimage[i,j])] = min(Ty,neg_list[4,round(Int,distanceimage[i,j])])
 					end
 				else
 					neg_pos = neg_pos + 1
 					# If running out of memory at a new block
 					if neg_pos > neg_free
-						neg_free = neg_free +100_000
+						neg_free = neg_free * 2
 						if Ed
-							neg_list = hcat(neg_list,zeros(4,neg_free))
+							neg_list = hcat(neg_list,zeros(T,4,neg_free))
 						else
-							neg_list = hcat(neg_list,zeros(3,neg_free))
+							neg_list = hcat(neg_list,zeros(T,3,neg_free))
 						end
 					end
+					neg_list[1,neg_pos] = Tt
+					neg_list[2,neg_pos] = i
+					neg_list[3,neg_pos] = j
 					if Ed
-						@views neg_list[:,neg_pos] = [Tt; i; j; Ty]
-					else
-						@views neg_list[:,neg_pos]=[Tt; i; j]
+						neg_list[4,neg_pos] = Ty
 					end
 					distanceimage[i,j] = neg_pos
 				end
