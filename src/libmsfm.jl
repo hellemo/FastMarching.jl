@@ -116,7 +116,7 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePoints::AbstractArray{T}, us
 
 
 	# Reuse variables for all iterations:
-	Tpatch = fill(T(Inf),(5,5))
+	Tpatch = @MArray zeros(T, 5, 5)
 	Order = @MArray zeros(Int8, 1, 4)
 	Tm = @MArray zeros(T,1,4)
 	Tm2 = @MArray zeros(T,1,4)
@@ -196,13 +196,13 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePoints::AbstractArray{T}, us
 end # End function msfm
 
 function calculatedistance(TI::AbstractArray{T}, Fij, sizeF, i, j, usesecond, usecross, Frozen) where T
-	Tpatch = fill(T(Inf),(5,5))
+	Tpatch = @MArray zeros(T, 5, 5)
 	Order = @MArray zeros(Int8, 1, 4)
 	Tm = @MArray zeros(T,1,4)
 	Tm2 = @MArray zeros(T,1,4)
 	Coeff = @MArray zeros(T,3)
-	Tt = zero(T)#@MArray zeros(T,2)
-	Tt2 = zero(T)
+	# Tt = zero(T)
+	# Tt2 = zero(T)
 	calculatedistance!(TI, Tpatch, Order, Coeff, Tm, Tm2, Fij, sizeF, i, j, usesecond, usecross, Frozen)
 end
 
