@@ -115,6 +115,13 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePoints::AbstractArray{T}, us
 	end
 
 
+	# Reuse variables for all iterations:
+	Tpatch = fill(T(Inf),(5,5))
+	Order = @MArray zeros(Int8, 1, 4)
+	Tm = @MArray zeros(T,1,4)
+	Tm2 = @MArray zeros(T,1,4)
+	Coeff = @MArray zeros(T,3)
+
 	# Loop through all pixels of the image
 	for itt = 1:length(speedimage)
 		# Get the pixel from narrow list (boundary list) with smallest
@@ -130,7 +137,7 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePoints::AbstractArray{T}, us
 		distanceimage[x,y] = neg_list[1,index]
 
 		if Ed
-			Y[x,y]=neg_list[4,index]
+			Y[x,y] = neg_list[4,index]
 		end
 
 		# Remove min value by replacing it with the last value in the array
@@ -152,9 +159,9 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePoints::AbstractArray{T}, us
 			# picture
 			if (i>0)&&(j>0)&&(i<=size(speedimage,1))&&(j<=size(speedimage,2))&&(~Frozen[i,j])
 
-				Tt=calculatedistance(distanceimage,speedimage[i,j],size(speedimage),i,j,usesecond,usecross,Frozen)
+				Tt = calculatedistance!(distanceimage, Tpatch, Order, Coeff, Tm, Tm2, speedimage[i,j], size(speedimage), i, j, usesecond, usecross, Frozen)
 				if Ed
-					Ty=calculatedistance(Y,1,size(speedimage),i,j,usesecond,usecross,Frozen)
+					Ty = calculatedistance!(Y, Tpatch, Order, Coeff, Tm, Tm2, speedimage[i,j], size(speedimage), i, j, usesecond, usecross, Frozen)
 				end
 
 				# Update distance in neigbour list or add to neigbour list
