@@ -1,7 +1,6 @@
 module FastMarching
 
 using LinearAlgebra
-using StaticArrays
 
 include("libmsfm.jl")
 include("pointmin.jl")

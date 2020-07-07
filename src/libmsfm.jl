@@ -22,7 +22,7 @@
 	# outputs
 	  T : Image with distance from SourcePoints to all pixels	
 """
-function msfm(speedimage::AbstractArray{T,2}, SourcePoints::AbstractArray{T}, usesecond::Bool=true, usecross::Bool=true,Ed=false::Bool) where T
+function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, usesecond::Bool=true, usecross::Bool=true,Ed=false::Bool) where T
 
 	distanceimage = fill(T(-1.0),size(speedimage))
 	# Augmented Fast Marching (For skeletonize)
@@ -56,17 +56,16 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePoints::AbstractArray{T}, us
 		   0 -1;
 		   0  1]
 
-	SourcePoints=round.(Int,floor.(SourcePoints))
-
+	SourcePoints = Int.(floor.(SourcePointsIn))
 
 	# set all starting points to distance zero and frozen
-	for z=1:size(SourcePoints,2)
+	for z = 1:size(SourcePoints,2)
 		# starting point
-		x= SourcePoints[1,z]
-		y= SourcePoints[2,z]
+		x = SourcePoints[1,z]
+		y = SourcePoints[2,z]
 		# Set starting point to frozen and distance to zero
-		Frozen[x,y]=true
-		distanceimage[x,y]=zero(T)
+		Frozen[x,y] = true
+		distanceimage[x,y] = 0
 	end
 
 
@@ -84,7 +83,7 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePoints::AbstractArray{T}, us
 			if( (i>0) && (j>0) && (i<=size(speedimage,1)) && (j<=size(speedimage,2)) && (~Frozen[i,j]))
 				Tt = 1/max(speedimage[i,j],eps(T))
 				Ty = T(1)
-				# Update distance in neigbour list or add to neigbour list
+				# Update distance in neighbour list or add to neighbour list
 				if distanceimage[i,j] > 0
 					if neg_list[1,distanceimage[i,j]] > Tt
 						neg_list[1,distanceimage[i,j]] = Tt
@@ -114,13 +113,14 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePoints::AbstractArray{T}, us
 		end
 	end
 
-
-	# Reuse variables for all iterations:
-	Tpatch = @MArray zeros(T, 5, 5)
-	Order = @MArray zeros(Int8, 1, 4)
-	Tm = @MArray zeros(T,1,4)
-	Tm2 = @MArray zeros(T,1,4)
-	Coeff = @MArray zeros(T,3)
+	# Reuse variables:
+	Tpatch = zeros(T, 5, 5)
+	Order = zeros(Int8, 1, 4)
+	Tm = zeros(T,1,4)
+	Tm2 = zeros(T,1,4)
+	Coeff = zeros(T,3)
+	TT = zeros(T,2)
+	TT2 = zeros(T,2)
 
 	# Loop through all pixels of the image
 	for itt = 1:length(speedimage)
@@ -157,11 +157,11 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePoints::AbstractArray{T}, us
 
 			# Check if current neighbour is not yet frozen and inside the
 			# picture
-			if (i>0)&&(j>0)&&(i<=size(speedimage,1))&&(j<=size(speedimage,2))&&(~Frozen[i,j])
+			if (i>0) && (j>0) && (i<=size(speedimage,1)) && (j<= size(speedimage,2)) && (~Frozen[i,j])
 
-				Tt = calculatedistance!(distanceimage, Tpatch, Order, Coeff, Tm, Tm2, speedimage[i,j], size(speedimage), i, j, usesecond, usecross, Frozen)
+				Tt = calculatedistance!(distanceimage, Tpatch, Order, Coeff, Tm, Tm2, TT, TT2,speedimage[i,j], size(speedimage), i, j, usesecond, usecross, Frozen)
 				if Ed
-					Ty = calculatedistance!(Y, Tpatch, Order, Coeff, Tm, Tm2, speedimage[i,j], size(speedimage), i, j, usesecond, usecross, Frozen)
+					Ty = calculatedistance!(Y, Tpatch, Order, Coeff, Tm, Tm2, TT, TT2, speedimage[i,j], size(speedimage), i, j, usesecond, usecross, Frozen)
 				end
 
 				# Update distance in neigbour list or add to neigbour list
@@ -173,9 +173,8 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePoints::AbstractArray{T}, us
 				else
 					neg_pos = neg_pos + 1
 					# If running out of memory at a new block
-					if neg_pos>neg_free
+					if neg_pos > neg_free
 						neg_free = neg_free +100_000
-						#Was: neg_list(1,neg_free)=0;
 						if Ed
 							neg_list = hcat(neg_list,zeros(4,neg_free))
 						else
@@ -196,18 +195,18 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePoints::AbstractArray{T}, us
 end # End function msfm
 
 function calculatedistance(TI::AbstractArray{T}, Fij, sizeF, i, j, usesecond, usecross, Frozen) where T
-	Tpatch = @MArray zeros(T, 5, 5)
-	Order = @MArray zeros(Int8, 1, 4)
-	Tm = @MArray zeros(T,1,4)
-	Tm2 = @MArray zeros(T,1,4)
-	Coeff = @MArray zeros(T,3)
-	# Tt = zero(T)
-	# Tt2 = zero(T)
-	calculatedistance!(TI, Tpatch, Order, Coeff, Tm, Tm2, Fij, sizeF, i, j, usesecond, usecross, Frozen)
+	Tpatch = zeros(T, 5, 5)
+	Order = zeros(Int8, 1, 4)
+	Tm = zeros(T,1,4)
+	Tm2 = zeros(T,1,4)
+	Coeff = zeros(T,3)
+	TT = zeros(T,2)
+	TT2 = zeros(T,2)
+	calculatedistance!(TI, Tpatch, Order, Coeff, Tm, Tm2, TT, TT2, Fij, sizeF, i, j, usesecond, usecross, Frozen)
 end
 
 
-function calculatedistance!(TI::AbstractArray{T}, Tpatch, Order, Coeff, Tm, Tm2, Fij, sizeF, i, j, usesecond, usecross, Frozen) where T
+function calculatedistance!(TI::AbstractArray{T}, Tpatch, Order, Coeff, Tm, Tm2, TT, TT2, Fij, sizeF, i, j, usesecond, usecross, Frozen) where T
 	
 	fill!(Tpatch,T(Inf))
 	for nx = -2:2
@@ -258,7 +257,7 @@ function calculatedistance!(TI::AbstractArray{T}, Tpatch, Order, Coeff, Tm, Tm2,
 		ch2 = (Tpatch[5,3] < Tpatch[4,3]) && isfinite(Tpatch[4,3])
 
 		if ch1 && ch2
-			Tm2[1] = minimum(( (4*Tpatch[2,3] - Tpatch[1,3])/3 , (4*Tpatch[4,3] - Tpatch[5,3])/3 ))
+			Tm2[1] = min( (4*Tpatch[2,3] - Tpatch[1,3])/3 , (4*Tpatch[4,3] - Tpatch[5,3])/3 )
 			Order[1] = 2
 		elseif ch1
 			Tm2[1] = (4*Tpatch[2,3] - Tpatch[1,3])/3
@@ -286,7 +285,7 @@ function calculatedistance!(TI::AbstractArray{T}, Tpatch, Order, Coeff, Tm, Tm2,
 			ch1 = (Tpatch[1,1] < Tpatch[2,2]) && isfinite(Tpatch[2,2])
 			ch2 = (Tpatch[5,5] < Tpatch[4,4]) && isfinite(Tpatch[4,4])
 			if ch1 && ch2
-				Tm2[3] = min( (4*Tpatch[2,2] - Tpatch[1,1])/3 , (4*Tpatch[4,4] - Tpatch[5,5])/3)
+				Tm2[3] = min( (4*Tpatch[2,2] - Tpatch[1,1])/3, (4*Tpatch[4,4] - Tpatch[5,5])/3)
 				Order[3] = 2
 			elseif ch1
 				Tm2[3] = (4*Tpatch[2,2] - Tpatch[1,1])/3
@@ -299,7 +298,7 @@ function calculatedistance!(TI::AbstractArray{T}, Tpatch, Order, Coeff, Tm, Tm2,
 			ch1 = (Tpatch[1,5] < Tpatch[2,4]) && isfinite(Tpatch[2,4])
 			ch2 = (Tpatch[5,1] < Tpatch[4,2]) && isfinite(Tpatch[4,2])
 			if ch1 && ch2
-				Tm2[4] = minimum(( (4*Tpatch[2,4] - Tpatch[1,5])/3 , (4*Tpatch[4,2] - Tpatch[5,1])/3))
+				Tm2[4] = min( (4*Tpatch[2,4] - Tpatch[1,5])/3, (4*Tpatch[4,2] - Tpatch[5,1])/3)
 				Order[4] = 2
 			elseif ch1
 				Tm2[4] = (4*Tpatch[2,4] - Tpatch[1,5])/3
@@ -310,37 +309,34 @@ function calculatedistance!(TI::AbstractArray{T}, Tpatch, Order, Coeff, Tm, Tm2,
 			end
 		end
 	else
-		Tm2=zeros(T,1,4)
+		fill!(Tm2,0)
 	end
 
 	# Calculate the distance using x and y direction
-	# Coeff = [0 0 -1/(max(Fij^2,eps()))]
-	Coeff .= T.([0, 0, -1/(max(Fij^2,eps(T)))])
+	Coeff .= (0, 0, -1/(max(Fij^2,eps(T))))
 	for t = 1:2
 		if Order[t] == 1
-			Coeff .+= [1, -2*Tm[t], Tm[t]^2]
+			Coeff .+= (1, -2*Tm[t], Tm[t]^2)
 		elseif Order[t] == 2
-			Coeff .+= [1, -2*Tm2[t], Tm2[t]^2] .* 2.25
+			Coeff .+= (1, -2*Tm2[t], Tm2[t]^2) .* 2.25
 		end
 	end
 
-	Tt=roots(Coeff)
-	Tt=maximum(Tt)
+	roots!(TT,Coeff)
 	# Calculate the distance using the cross directions
 	if usecross
-		Coeff .+= T.([0, 0, -1/(maximum([Fij^2,eps(T)]))])
+		Coeff .+= (0, 0, -1/(maximum((Fij^2,eps(T)))))
 		for t=3:4
 			if Order[t] == 1
-				Coeff .+= 0.5 .*[1, -2*Tm[t], Tm[t]^2]
+				Coeff .+= 0.5 .* (1, -2*Tm[t], Tm[t]^2)
 			elseif Order[t] == 2
-				Coeff .+= 0.5 .*[1, -2*Tm2[t], Tm2[t]^2] .* 2.25
+				Coeff .+= 0.5 .* (1, -2*Tm2[t], Tm2[t]^2) .* 2.25
 			end
 		end
-		Tt2=roots(Coeff)
-		Tt2=maximum(Tt2)
+		roots!(TT2, Coeff)
 		# Select minimum distance value of both stensils
-		if ~isempty(Tt2)
-			Tt=minimum((Tt,Tt2))
+		if ~isempty(TT2)
+			Tt = min(maximum(TT), maximum(TT2))
 		end
 	end
 
@@ -379,7 +375,7 @@ function roots_exp!(z, Coeff::AbstractArray{T}) where T
 end
 
 function roots(Coeff::AbstractArray{T}) where T
-	z = @MArray zeros(T,2,1)
+	z = zeros(T,2,1)
 	roots!(z,Coeff)
 	return z
 end
