@@ -13,26 +13,9 @@
 # Function is written by D.Kroon University of Twente (July 2008)
 # Port from C to Julia by Lars Hellemo (May 2014)
 
-
-#function mindex2(x, y, sizx)
-#    return y*sizx+x
-#end
-
-function mindex3(x::Int, y::Int, z::Int, sizx::Int, sizy::Int)
-    return z*sizy*sizx+y*sizx+x
-end
-
 function checkBounds2d( point, Isize)
     if (point[1]<1)||(point[2]<1)||(point[1]>(Isize[1]))||(point[2]>(Isize[2]))
         return false
-    end
-    return true
-end
-
-# TODO check dimensions of point, seems to be bogus
-function checkBounds3d( point::Array{Number,3}, Isize::Array{Int,1})
-    if (point[1,1,1]<1)||(point[2,1,1]<1)||(point[3,1,1]<1)||(point[1,1,1]>(Isize[1]))||(point[2,1,1]>(Isize[2]))||(point[3,1,1]>(Isize[3]))
-         return false
     end
     return true
 end
