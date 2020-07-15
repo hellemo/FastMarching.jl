@@ -56,13 +56,14 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, 
 		   0 -1;
 		   0  1]
 
-	SourcePoints = Int.(floor.(SourcePointsIn))
+	# SourcePoints = Int.(floor.(SourcePointsIn))
+	SourcePoints = SourcePointsIn
 
 	# set all starting points to distance zero and frozen
 	for z = 1:size(SourcePoints,2)
 		# starting point
-		x = SourcePoints[1,z]
-		y = SourcePoints[2,z]
+		x = Int(round(SourcePoints[1,z]))
+		y = Int(round(SourcePoints[2,z]))
 		# Set starting point to frozen and distance to zero
 		Frozen[x,y] = true
 		distanceimage[x,y] = 0
@@ -72,8 +73,8 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, 
 	# Add all neighbours of the starting points to narrow list
 	for z = 1:size(SourcePoints,2)
 		# starting point
-		x = SourcePoints[1,z]
-		y = SourcePoints[2,z]
+		x = Int(round(SourcePoints[1,z]))
+		y = Int(round(SourcePoints[2,z]))
 		for k=1:4
 			# Location of neighbour
 			i = x + ne[k,1]
@@ -338,8 +339,10 @@ function calculatedistance!(TI::AbstractArray{T}, Tpatch, Order, Coeff, Tm, Tm2,
 		roots!(TT2, Coeff)
 		# Select minimum distance value of both stensils
 		if ~isempty(TT2)
-			Tt = min(maximum(TT), maximum(TT2))
+			TT = min(maximum(TT), maximum(TT2))
 		end
+	else
+		TT = maximum(TT)
 	end
 
 	# Upwind condition check, current distance must be larger

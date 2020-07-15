@@ -22,6 +22,7 @@ function shortestpath(distancemap::AbstractArray{T},startpoint::AbstractArray{T}
     ShortestLine=zeros(T,ifree,ndims(distancemap))
 
     # Iteratively trace the shortest line
+    Movement = T(1)
     while true
         EndPoint = rk4(startpoint, gradientvolume, stepsize)
 
@@ -33,24 +34,22 @@ function shortestpath(distancemap::AbstractArray{T},startpoint::AbstractArray{T}
         end
 
         # Calculate the movement between current point and point 10 iterations back
-        if i>10
-            Movement=sqrt(sum((EndPoint[:]-ShortestLine[i-10,:]).^2))
-        else
-            Movement=stepsize+1
+        if i > 10
+            Movement = sqrt(sum((EndPoint[:]-ShortestLine[i-10,:]).^2))
         end
 
         # Stop if out of boundary, distance to end smaller then a pixel or
         # if we have not moved for 10 iterations
-        if (EndPoint[1]==0)||(Movement<stepsize)
+        if (EndPoint[1] == 0) || (Movement < stepsize)
             break
         end
 
         # Count the number of iterations
-        i=i+1
+        i = i + 1
 
         # Add a new block of memory if nearly full
         if i > (ifree - 2)
-            ifree=ifree * 2
+            ifree = ifree * 2
             ShortestLine = vcat(ShortestLine,zeros(T,ifree, ndims(distancemap))) 
         end
 
