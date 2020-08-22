@@ -3,7 +3,7 @@
 ## v0.2.3 (2020-08-22)
 
 - Split neg_pos into vectors
-- Some simplifications
+- Some simplifications and performance improvements
 
 ## v0.2.2 (2020-07-18)
 
