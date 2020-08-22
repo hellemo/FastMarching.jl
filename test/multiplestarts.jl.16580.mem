@@ -1,0 +1,18 @@
+        - using FastMarching
+        - using Test
+        - 
+        - function testMultipleStarts(tsize::Int=300,npoints::Int=20)
+  1440160   SpeedImage = ones(tsize,tsize)
+      576   SourcePoint = rand(2,npoints).*tsize.+1
+        - 
+        0   t1 = FastMarching.msfm(SpeedImage, SourcePoint, true, true)
+        0   t2 = FastMarching.msfm(SpeedImage, SourcePoint, true, true)
+        -   
+      704   @test norm(t1 - t2) < 1e-10 # Result is deterministic
+        - end  # function testMultipleStarts
+        - 
+        - @testset "testMultipleStarts is deterministic" begin
+     2592 @testset "npoints=$npoints" for npoints in [10, 15]
+        -   testMultipleStarts(300, npoints)
+        - end
+        - end
