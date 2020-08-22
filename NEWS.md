@@ -1,5 +1,10 @@
 # Release notes for FastMarching
 
+## v0.2.3 (2020-08-22)
+
+- Split neg_pos into vectors
+- Some simplifications
+
 ## v0.2.2 (2020-07-18)
 
 - Fix bug calculating distance using cross direction.
