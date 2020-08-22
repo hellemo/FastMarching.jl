@@ -148,7 +148,7 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, 
 		end
 		neg_pos = neg_pos - 1
 		# Loop through all 4 neighbours of current pixel
-		@inbounds for k = 1:4
+		for k = 1:4
 			# Location of neighbour
 			i = x + ne[k,1]
 			j = y + ne[k,2]
