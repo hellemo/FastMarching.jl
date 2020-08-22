@@ -24,8 +24,8 @@
 """
 function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, usesecond::Bool=true, usecross::Bool=true,Ed=false::Bool) where T
 
-	distanceimage = zeros(T,size(speedimage))
-	fill!(distanceimage,T(-Inf))
+	distanceimage = zeros(T, size(speedimage))
+	fill!(distanceimage, T(-Inf))
 	# Augmented Fast Marching (For skeletonize)
 	
 	# Euclidian distance image
@@ -34,20 +34,16 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, 
 	end
 
 	# Pixels which are processed and have a final distance are frozen
-	Frozen   = falses(size(speedimage));
+	Frozen = falses(size(speedimage));
 
 	# Free memory to store neighbours of the (segmented) region
 	neg_free = length(speedimage)
 	neg_pos = 0
+    neg_list_1 = zeros(T,neg_free)
+    neg_list_x = fill(1, neg_free) 
+    neg_list_y = fill(1, neg_free) 
 	if Ed
-        neg_list_1 = zeros(T,neg_free)
-        neg_list_x = fill(1, neg_free) 
-        neg_list_y = fill(1, neg_free) 
         neg_list_4 = zeros(T,neg_free)
-	else
-        neg_list_1 = zeros(T,neg_free)
-        neg_list_x = fill(1, neg_free) 
-        neg_list_y = fill(1, neg_free) 
 	end
 
 	# (There are 3 pixel classes:
@@ -76,7 +72,7 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, 
 
 
 	# Add all neighbours of the starting points to narrow list
-	for z = 1:size(SourcePoints,2)
+	@inbounds for z = 1:size(SourcePoints,2)
 		# starting point
 		x = Int(round(SourcePoints[1,z]))
 		y = Int(round(SourcePoints[2,z]))
@@ -150,9 +146,9 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, 
 			y2 = neg_list_y[index]
 			distanceimage[x2,y2] = index
 		end
-		neg_pos = neg_pos-1
+		neg_pos = neg_pos - 1
 		# Loop through all 4 neighbours of current pixel
-		for k = 1:4
+		@inbounds for k = 1:4
 			# Location of neighbour
 			i = x + ne[k,1]
 			j = y + ne[k,2]
@@ -167,7 +163,7 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, 
 				end
 
 				# Update distance in neighbour list or add to neighbour list
-				if distanceimage[i,j]>0
+				if distanceimage[i,j] > 0
 					if Tt !== nothing
 						neg_list_1[round(Int,distanceimage[i,j])] = min(Tt, neg_list_1[round(Int,distanceimage[i,j])] )
 					end
@@ -204,8 +200,8 @@ end
 
 function calculatedistance!(TI::AbstractArray{T}, Tpatch, Order, Coeff, Tm, Tm2, TT, TT2, Fij, sizeF, i, j, usesecond, usecross, Frozen) where T
 	
-	fill!(Tpatch,T(Inf))
-	for nx = -2:2
+	fill!(Tpatch, T(Inf))
+	@inbounds for nx = -2:2
 		for ny = -2:2
 			i_n = i + nx
 			j_n = j + ny
@@ -218,10 +214,10 @@ function calculatedistance!(TI::AbstractArray{T}, Tpatch, Order, Coeff, Tm, Tm2,
 	# The values in order is 0 if no neighbours in that direction
 	# 1 if 1e order derivatives is used and 2 if second order
 	# derivatives are used
-	fill!(Order,0)
+	fill!(Order, 0)
 
 	# Make 1e order derivatives in x and y direction
-	fill!(Tm,0)
+	fill!(Tm, 0)
 	Tm[1] = min(Tpatch[2,3], Tpatch[4,3] )
 	if isfinite(Tm[1])
 		Order[1]=1
@@ -318,11 +314,11 @@ function calculatedistance!(TI::AbstractArray{T}, Tpatch, Order, Coeff, Tm, Tm2,
 		end
 	end
 
-	roots!(TT,Coeff)
+	roots!(TT, Coeff)
 	# Calculate the distance using the cross directions
 	if usecross
 		Coeff .+= (0, 0, -1/(maximum((Fij^2,eps(T)))))
-		for t=3:4
+		for t = 3:4
 			if Order[t] == 1
 				Coeff .+= 0.5 .* (1, -2*Tm[t], Tm[t]^2)
 			elseif Order[t] == 2
