@@ -40,9 +40,14 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, 
 	neg_free = length(speedimage)
 	neg_pos = 0
 	if Ed
-		neg_list = zeros(T,4,neg_free)
+        neg_list_1 = zeros(T,neg_free)
+        neg_list_x = fill(1, neg_free) 
+        neg_list_y = fill(1, neg_free) 
+        neg_list_4 = zeros(T,neg_free)
 	else
-		neg_list = zeros(T,3,neg_free)
+        neg_list_1 = zeros(T,neg_free)
+        neg_list_x = fill(1, neg_free) 
+        neg_list_y = fill(1, neg_free) 
 	end
 
 	# (There are 3 pixel classes:
@@ -86,28 +91,20 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, 
 				Ty = T(1)
 				# Update distance in neighbour list or add to neighbour list
 				if distanceimage[i,j] > 0
-					if neg_list[1,distanceimage[i,j]] > Tt
-						neg_list[1,distanceimage[i,j]] = Tt
+					if neg_list_1[distanceimage[i,j]] > Tt
+						neg_list_1[distanceimage[i,j]] = Tt
 					end
 					if Ed
-						neg_list[4,distanceimage[i,j]] = min(Ty, neg_list[4,distanceimage[i,j]]);
+						neg_list_4[distanceimage[i,j]] = min(Ty, neg_list_4[distanceimage[i,j]]);
 					end
 				else
-					neg_pos=neg_pos+1
-					# If running out of memory at a new block
-					if neg_pos>neg_free
-						neg_free = neg_free * 2
-						if Ed
-							neg_list = hcat(neg_list, zeros(T,4,neg_free))
-						else
-							neg_list = hcat(neg_list, zeros(T,3,neg_free))
-						end
-					end
+					neg_pos = neg_pos + 1
+                    neg_list_1[neg_pos] = Tt
+                    neg_list_x[neg_pos] = i
+                    neg_list_y[neg_pos] = j
 					if Ed
-						@views neg_list[:,neg_pos] = [Tt; i; j; Ty]
-					else
-						@views neg_list[:,neg_pos] = [Tt; i; j]
-					end
+                        neg_list_4[neg_pos] = Ty
+                    end
 					distanceimage[i,j] = neg_pos
 				end
 			end
@@ -131,21 +128,26 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, 
 		if neg_pos == 0
 			break
 		end
-		(t,index) = findmin(neg_list[1,1:neg_pos])
-		x = round(Int,neg_list[2,index])
-		y = round(Int,neg_list[3,index])
+		(t,index) = findmin(view(neg_list_1,1:neg_pos))
+		x = neg_list_x[index]
+		y = neg_list_y[index]
 		Frozen[x, y] = true
-		distanceimage[x,y] = neg_list[1,index]
+		distanceimage[x,y] = neg_list_1[index]
 
 		if Ed
-			Y[x,y] = neg_list[4,index]
+			Y[x,y] = neg_list_4[index]
 		end
 
 		# Remove min value by replacing it with the last value in the array
 		if index < neg_pos
-			@views neg_list[:,index] = neg_list[:,neg_pos]
-			x2 = round(Int,neg_list[2,index])
-			y2 = round(Int,neg_list[3,index])
+            neg_list_1[index] = neg_list_1[neg_pos]
+            neg_list_x[index] = neg_list_x[neg_pos]
+            neg_list_y[index] = neg_list_y[neg_pos]
+            if Ed
+                neg_list_4[index] = neg_list_4[neg_pos]
+            end
+			x2 = neg_list_x[index]
+			y2 = neg_list_y[index]
 			distanceimage[x2,y2] = index
 		end
 		neg_pos = neg_pos-1
@@ -167,27 +169,18 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, 
 				# Update distance in neighbour list or add to neighbour list
 				if distanceimage[i,j]>0
 					if Tt !== nothing
-						neg_list[1,round(Int,distanceimage[i,j])] = min(Tt, neg_list[1,round(Int,distanceimage[i,j])] )
+						neg_list_1[round(Int,distanceimage[i,j])] = min(Tt, neg_list_1[round(Int,distanceimage[i,j])] )
 					end
 					if Ed && (Tt !== nothing)
-						neg_list[4,round(Int,distanceimage[i,j])] = min(Ty,neg_list[4,round(Int,distanceimage[i,j])])
+						neg_list_4[round(Int,distanceimage[i,j])] = min(Ty,neg_list_4[round(Int,distanceimage[i,j])])
 					end
 				else
 					neg_pos = neg_pos + 1
-					# If running out of memory at a new block
-					if neg_pos > neg_free
-						neg_free = neg_free * 2
-						if Ed
-							neg_list = hcat(neg_list,zeros(T,4,neg_free))
-						else
-							neg_list = hcat(neg_list,zeros(T,3,neg_free))
-						end
-					end
-					neg_list[1,neg_pos] = Tt
-					neg_list[2,neg_pos] = i
-					neg_list[3,neg_pos] = j
+					neg_list_1[neg_pos] = Tt
+					neg_list_x[neg_pos] = i
+					neg_list_y[neg_pos] = j
 					if Ed
-						neg_list[4,neg_pos] = Ty
+						neg_list_4[neg_pos] = Ty
 					end
 					distanceimage[i,j] = neg_pos
 				end
