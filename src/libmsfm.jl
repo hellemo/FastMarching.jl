@@ -22,7 +22,7 @@
 	# outputs
 	  T : Image with distance from SourcePoints to all pixels	
 """
-function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, usesecond::Bool=true, usecross::Bool=true,Ed=false::Bool) where T
+function msfm(speedimage::AbstractArray{T,2}, SourcePoints::AbstractArray{T}, usesecond::Bool=true, usecross::Bool=true,Ed=false::Bool) where T
 
 	distanceimage = zeros(T, size(speedimage))
 	fill!(distanceimage, T(-Inf))
@@ -30,7 +30,7 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, 
 	
 	# Euclidian distance image
 	if(Ed)
-		Y = zeros(T,size(speedimage))
+		Y = zeros(T, size(speedimage))
 	end
 
 	# Pixels which are processed and have a final distance are frozen
@@ -56,30 +56,29 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, 
 		   1  0;
 		   0 -1;
 		   0  1]
-
-	# SourcePoints = Int.(floor.(SourcePointsIn))
-	SourcePoints = SourcePointsIn
+    Tt = T(0)
+    Ty = T(0)
 
 	# set all starting points to distance zero and frozen
 	for z = 1:size(SourcePoints,2)
 		# starting point
-		x = Int(round(SourcePoints[1,z]))
-		y = Int(round(SourcePoints[2,z]))
+		x = round(Int, SourcePoints[1,z])
+		y = round(Int, SourcePoints[2,z])
 		# Set starting point to frozen and distance to zero
 		Frozen[x,y] = true
 		distanceimage[x,y] = 0
 	end
 
-
 	# Add all neighbours of the starting points to narrow list
 	@inbounds for z = 1:size(SourcePoints,2)
 		# starting point
-		x = Int(round(SourcePoints[1,z]))
-		y = Int(round(SourcePoints[2,z]))
-		for k=1:4
+		x = round(Int, SourcePoints[1,z])
+        y = round(Int, SourcePoints[2,z])
+        
+		for k = 1:4
 			# Location of neighbour
-			i = x + ne[k,1]
-			j = y + ne[k,2]
+			i = x + ne[k, 1]
+			j = y + ne[k, 2]
 			# Check if current neighbour is not yet frozen and inside the
 			# picture
 			if( (i>0) && (j>0) && (i<=size(speedimage,1)) && (j<=size(speedimage,2)) && (~Frozen[i,j]))
@@ -164,10 +163,8 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePointsIn::AbstractArray{T}, 
 
 				# Update distance in neighbour list or add to neighbour list
 				if distanceimage[i,j] > 0
-					if Tt !== nothing
-						neg_list_1[round(Int,distanceimage[i,j])] = min(Tt, neg_list_1[round(Int,distanceimage[i,j])] )
-					end
-					if Ed && (Tt !== nothing)
+					neg_list_1[round(Int,distanceimage[i,j])] = min(Tt, neg_list_1[round(Int,distanceimage[i,j])] )
+					if Ed
 						neg_list_4[round(Int,distanceimage[i,j])] = min(Ty,neg_list_4[round(Int,distanceimage[i,j])])
 					end
 				else
@@ -336,10 +333,11 @@ function calculatedistance!(TI::AbstractArray{T}, Tpatch, Order, Coeff, Tm, Tm2,
 
 	# Upwind condition check, current distance must be larger
 	# then direct neighbours used in solution
-	#DirectNeigbInSol=Tm(isfinite(Tm));
-	#if(nnz(DirectNeigbInSol>=Tt)>0) # Will this ever happen?
+	# DirectNeigbInSol=Tm(isfinite(Tm));
+	# if(nnz(DirectNeigbInSol>=Tt)>0) # Will this ever happen?
 	#    Tt=min(DirectNeigbInSol)+(1/(max(Fij,eps)));
-	#end
+    # end
+    return minimum(TT)
 end
 
 function roots!(z, Coeff::AbstractArray{T}) where T
