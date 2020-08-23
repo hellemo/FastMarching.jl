@@ -29,7 +29,7 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePoints::AbstractArray{T}, us
 	# Augmented Fast Marching (For skeletonize)
 	
 	# Euclidian distance image
-	if(Ed)
+	if Ed
 		Y = zeros(T, size(speedimage))
 	end
 
@@ -302,24 +302,38 @@ function calculatedistance!(TI::AbstractArray{T}, Tpatch, Order, Coeff, Tm, Tm2,
 	end
 
 	# Calculate the distance using x and y direction
-	Coeff .= (0, 0, -1/(max(Fij^2,eps(T))))
+    Coeff[1] = 0
+    Coeff[2] = 0
+    Coeff[3] = -1/(max(Fij^2,eps(T)))
 	for t = 1:2
 		if Order[t] == 1
-			Coeff .+= (1, -2*Tm[t], Tm[t]^2)
-		elseif Order[t] == 2
-			Coeff .+= (1, -2*Tm2[t], Tm2[t]^2) .* 2.25
+            Coeff[1] += 1
+            Coeff[2] += -2*Tm[t]
+            Coeff[3] += Tm[t]^2
+        elseif Order[t] == 2
+            Coeff[1] += 1
+            Coeff[2] += -2*Tm2[t]
+            Coeff[3] += Tm2[t]^2 * 2.25
 		end
 	end
 
 	roots!(TT, Coeff)
 	# Calculate the distance using the cross directions
 	if usecross
-		Coeff .+= (0, 0, -1/(maximum((Fij^2,eps(T)))))
+		Coeff[1] = 0
+        Coeff[2] = 0
+        Coeff[3] = -1/(max(Fij^2,eps(T)))
 		for t = 3:4
 			if Order[t] == 1
-				Coeff .+= 0.5 .* (1, -2*Tm[t], Tm[t]^2)
+                # Coeff .+= 0.5 .* (1, -2*Tm[t], Tm[t]^2)
+                Coeff[1] += 0.5
+                Coeff[2] -= Tm[t]
+                Coeff[3] += 0.5 * Tm[t]^2
 			elseif Order[t] == 2
-				Coeff .+= 0.5 .* (1, -2*Tm2[t], Tm2[t]^2) .* 2.25
+                # Coeff .+= 0.5 .* (1, -2*Tm2[t], Tm2[t]^2) .* 2.25
+                Coeff[1] += 0.5 * 2.25
+                Coeff[2] -= 2.25 * Tm2[t]
+                Coeff[3] += 0.5 * 2.25 * Tm2[t]^2
 			end
 		end
 		roots!(TT2, Coeff)
@@ -341,30 +355,19 @@ function calculatedistance!(TI::AbstractArray{T}, Tpatch, Order, Coeff, Tm, Tm2,
 end
 
 function roots!(z, Coeff::AbstractArray{T}) where T
-	a = Coeff[1]
+    a = Coeff[1]
 	b = Coeff[2]
 	c = Coeff[3]
-	d = max((b*b)-4.0*a*c,zero(T))
+	d = max(b^2 - 4.0*a*c, zero(T))
 	if a != 0
-		z[1] = (-b - sqrt(d)) / (T(2.0)*a)
-		z[2] = (-b + sqrt(d)) / (T(2.0)*a)
+		z[1] = (-b - sqrt(d)) / 2a
+		z[2] = (-b + sqrt(d)) / 2a
 	else
-		z[1] = (T(2.0)*c)/(-b - sqrt(d))
-		z[2] = (T(2.0)*c)/(-b + sqrt(d))
+		z[1] = 2c/(-b - sqrt(d))
+		z[2] = 2c/(-b + sqrt(d))
 	end
 end
 
-function roots_exp!(z, Coeff::AbstractArray{T}) where T
-	a = Coeff[1]
-	b = Coeff[2]
-	c = Coeff[3]
-	d = max((b*b)-4.0*a*c,zero(T))
-	if a != 0
-		z = max( (-b - sqrt(d)) / (T(2.0)*a), (-b + sqrt(d)) / (T(2.0)*a) )
-	else
-		z = max( (T(2.0)*c)/(-b - sqrt(d)), (T(2.0)*c)/(-b + sqrt(d)) )
-	end
-end
 
 function roots(Coeff::AbstractArray{T}) where T
 	z = zeros(T,2,1)
