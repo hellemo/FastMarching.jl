@@ -23,5 +23,17 @@ endpoint = [1.,1.]
 end
 end
 
+@testset "correctness" begin
+    for N ∈ [2, 5, 10]
+        speedimage = ones(N,N)
+        sourcepoint = [float(N);float(N)]
+        distancemap = FastMarching.msfm(speedimage, sourcepoint, true, true)
+        @test distancemap[1,end] ≈ (N-1)
+        @test distancemap[end,1] ≈ (N-1)
+        @test distancemap[end] ≈ 0
+        @test isapprox(distancemap[1], sqrt(2*(N-1)^2); atol=0.2)
+    end
+end
+
 include(joinpath(@__DIR__, "multiplestarts.jl"))
 end
