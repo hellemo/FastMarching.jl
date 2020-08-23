@@ -308,29 +308,27 @@ function calculatedistance!(TI::AbstractArray{T}, Tpatch, Order, Coeff, Tm, Tm2,
 	for t = 1:2
 		if Order[t] == 1
             Coeff[1] += 1
-            Coeff[2] += -2*Tm[t]
+            Coeff[2] -= 2*Tm[t]
             Coeff[3] += Tm[t]^2
         elseif Order[t] == 2
-            Coeff[1] += 1
-            Coeff[2] += -2*Tm2[t]
-            Coeff[3] += Tm2[t]^2 * 2.25
+            Coeff[1] += 2.25
+            Coeff[2] -= 2.25 * 2 * Tm2[t]
+            Coeff[3] += 2.25 * Tm2[t]^2
 		end
 	end
 
 	roots!(TT, Coeff)
 	# Calculate the distance using the cross directions
 	if usecross
-		Coeff[1] = 0
-        Coeff[2] = 0
-        Coeff[3] = -1/(max(Fij^2,eps(T)))
+		Coeff[1] += 0
+        Coeff[2] += 0
+        Coeff[3] += -1/(max(Fij^2,eps(T)))
 		for t = 3:4
 			if Order[t] == 1
-                # Coeff .+= 0.5 .* (1, -2*Tm[t], Tm[t]^2)
                 Coeff[1] += 0.5
                 Coeff[2] -= Tm[t]
                 Coeff[3] += 0.5 * Tm[t]^2
 			elseif Order[t] == 2
-                # Coeff .+= 0.5 .* (1, -2*Tm2[t], Tm2[t]^2) .* 2.25
                 Coeff[1] += 0.5 * 2.25
                 Coeff[2] -= 2.25 * Tm2[t]
                 Coeff[3] += 0.5 * 2.25 * Tm2[t]^2
