@@ -1,5 +1,9 @@
 # Release notes for FastMarching
 
+## v0.2.5 (2020-08-23)
+
+- Performance improvement (fix allocation issue)
+
 ## v0.2.4 (2020-08-22)
 
 - Split neg_pos into vectors
