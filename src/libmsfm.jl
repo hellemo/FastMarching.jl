@@ -320,8 +320,8 @@ function calculatedistance!(TI::AbstractArray{T}, Tpatch, Order, Coeff, Tm, Tm2,
 	roots!(TT, Coeff)
 	# Calculate the distance using the cross directions
 	if usecross
-		Coeff[1] += 0
-        Coeff[2] += 0
+		# Coeff[1] += 0
+        # Coeff[2] += 0
         Coeff[3] += -1/(max(Fij^2,eps(T)))
 		for t = 3:4
 			if Order[t] == 1
