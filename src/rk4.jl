@@ -115,17 +115,17 @@ function rk4step2d(gradientarray::AbstractArray{T}, startpoint::AbstractArray{T}
         @views tempnorm = max(norm(k[ki,:]),1e-6)
         for p = 1:2
             k[ki,p] *= stepsize/tempnorm
-            temppoint[p] = startpoint[p] - k[ki,p] * 0.5
+            temppoint[p] = startpoint[p] - k[ki,p] * T(0.5)
         end
         # Check if still inside the domain
         if !checkBounds2d(temppoint, gradientarraysize)
-            return ones(2,)
+            return ones(T,2,)
         end
     end
     
     # Calculate final point
     for p = 1:2
-        nextpoint[p] = startpoint[p] - (k[1,p] + k[2,p] * 2.0 + k[3,p] * 2.0 + k[4,p])/6.0
+        nextpoint[p] = startpoint[p] - (k[1,p] + k[2,p] * T(2.0) + k[3,p] * T(2.0) + k[4,p])/T(6.0)
     end
 
     # Set step to step size
@@ -139,7 +139,7 @@ function rk4step2d(gradientarray::AbstractArray{T}, startpoint::AbstractArray{T}
 
     # Check the if are still inside the domain
     if !checkBounds2d(nextpoint, gradientarraysize)
-        return ones(2,)
+        return ones(T,2,)
     end
     return nextpoint
 end

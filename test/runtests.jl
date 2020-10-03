@@ -5,7 +5,7 @@ using LinearAlgebra
 @testset "Test FastMarching" begin
 
 function testI(n::Integer,endpoint=[1.,1.],stepsize=0.1,T=Float64)
-  speedmap = T.(fill(0,(n,n))+I .* 1000 .+ 0.1)
+  speedmap = zeros(T,(n,n))+I .* T(1000) .+ T(0.1)
   source = T.([float(size(speedmap,1)), float(size(speedmap,2))])
   distancemap = FastMarching.msfm(speedmap,source,true,true)
   endpoint = T.([1.,1.])
