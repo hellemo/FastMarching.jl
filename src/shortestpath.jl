@@ -12,14 +12,17 @@ function shortestpath(distancemap::AbstractArray{T},startpoint::AbstractArray{T}
     
     distancetoend = T(Inf)
     gradientvolume = zeros(T,size(distancemap,1),size(distancemap,2),2)
-    (Fx,Fy) = pointmin(distancemap)
-    @views gradientvolume[:,:,1]=-Fx
-    @views gradientvolume[:,:,2]=-Fy
+   
+    Fx = view(gradientvolume,:,:,1)
+    Fy = view(gradientvolume,:,:,2)
+    pointmin!(distancemap, Fx, Fy)
+    Fx .= -Fx
+    Fy .= -Fy
     
-    i=0
+    i = 0
     # Reserve a block of memory for the shortest line array
-    ifree=size(distancemap,1) * 2
-    ShortestLine=zeros(T,ifree,ndims(distancemap))
+    ifree = size(distancemap,1) * 2
+    ShortestLine = zeros(T, ifree, ndims(distancemap))
 
     # Iteratively trace the shortest line
     Movement = T(1)
@@ -28,7 +31,7 @@ function shortestpath(distancemap::AbstractArray{T},startpoint::AbstractArray{T}
 
         # Calculate the distance to the end point
         if !isempty(sourcepoint) && !isnan(sourcepoint[1])
-            (distancetoend,ind)=findmin(sqrt.(sum((sourcepoint.-repeat(EndPoint,1,size(sourcepoint,2))).^2)))
+            (distancetoend,ind) = findmin(sqrt.(sum((sourcepoint.-repeat(EndPoint,1,size(sourcepoint,2))).^2)))
         else
             distancetoend = Inf
         end
@@ -67,8 +70,8 @@ function shortestpath(distancemap::AbstractArray{T},startpoint::AbstractArray{T}
         startpoint=EndPoint
     end
 
-    if (distancetoend>1)&&(~isempty(sourcepoint))
-        @warn "The shortest path trace did not finish at the source point"
+    if (distancetoend  > 1) && (~isempty(sourcepoint))
+        @warn "The shortest path trace did not finish at the source point" distancetoend
     end
 
     # Remove unused memory from array
