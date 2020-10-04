@@ -23,8 +23,15 @@
 	  T : Image with distance from SourcePoints to all pixels	
 """
 function msfm(speedimage::AbstractArray{T,2}, SourcePoints::AbstractArray{T}, usesecond::Bool=true, usecross::Bool=true,Ed=false::Bool) where T
+    distanceimage = zeros(T, size(speedimage))
+    
+    Frozen = falses(size(speedimage)) # Pixels which are processed and have a final distance are frozen
 
-	distanceimage = zeros(T, size(speedimage))
+    msfm!(distanceimage, Frozen, speedimage, SourcePoints, usesecond, usecross ,Ed)
+    return distanceimage
+end
+
+function msfm!(distanceimage, Frozen, speedimage::AbstractArray{T,2}, SourcePoints::AbstractArray{T}, usesecond::Bool=true, usecross::Bool=true,Ed=false::Bool) where T
 	fill!(distanceimage, T(-Inf))
 	# Augmented Fast Marching (For skeletonize)
 	
@@ -33,10 +40,7 @@ function msfm(speedimage::AbstractArray{T,2}, SourcePoints::AbstractArray{T}, us
 		Y = zeros(T, size(speedimage))
 	end
 
-	# Pixels which are processed and have a final distance are frozen
-	Frozen = falses(size(speedimage));
-
-	# Free memory to store neighbours of the (segmented) region
+	# Store neighbours of the (segmented) region
 	neg_free = length(speedimage)
 	neg_pos = 0
     neg_list_1 = zeros(T,neg_free)
