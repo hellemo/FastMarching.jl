@@ -13,17 +13,20 @@
 # Function is written by D.Kroon University of Twente (July 2008)
 # Port from C to Julia by Lars Hellemo (May 2014)
 
-function checkBounds2d( point, Isize)
-    if (point[1] < 1) || (point[2] < 1) || (point[1] > (Isize[1])) || (point[2] > (Isize[2]))
+function checkBounds2d(point, Isize)
+    if (point[1] < 1) ||
+       (point[2] < 1) ||
+       (point[1] > (Isize[1])) ||
+       (point[2] > (Isize[2]))
         return false
     end
     return true
 end
 
-function interpgrad2d!(Ireturn::AbstractArray{T},I, Isize, point) where T
+function interpgrad2d!(Ireturn::AbstractArray{T}, I, Isize, point) where {T}
     #  Linear interpolation variables
-    perc = zeros(T,4,)
-    index = fill(4,4,1)
+    perc = zeros(T, 4)
+    index = fill(4, 4, 1)
     fTlocalx = floor(point[1])
     fTlocaly = floor(point[2])
     xBas0 = Int(fTlocalx)
@@ -70,62 +73,72 @@ function interpgrad2d!(Ireturn::AbstractArray{T},I, Isize, point) where T
     end
 
     # Get the neighbour intensities
-    index[1] = LinearIndices(size(I))[xBas0,yBas0,1] #TODO Why is this dim 3,3,2?
-    index[2] = LinearIndices(size(I))[xBas0,yBas1,1]
-    index[3] = LinearIndices(size(I))[xBas1,yBas0,1]
-    index[4] = LinearIndices(size(I))[xBas1,yBas1,1]
+    index[1] = LinearIndices(size(I))[xBas0, yBas0, 1] #TODO Why is this dim 3,3,2?
+    index[2] = LinearIndices(size(I))[xBas0, yBas1, 1]
+    index[3] = LinearIndices(size(I))[xBas1, yBas0, 1]
+    index[4] = LinearIndices(size(I))[xBas1, yBas1, 1]
 
     f = Isize[1] * Isize[2]
 
     # the interpolated color
-    Ireturn[1] = sum(I[index[i]] * perc[i] for i=1:4)
-    Ireturn[2] = sum(I[index[i] + f] * perc[i] for i=1:4) 
+    Ireturn[1] = sum(I[index[i]] * perc[i] for i in 1:4)
+    Ireturn[2] = sum(I[index[i] + f] * perc[i] for i in 1:4)
     return Ireturn
 end
 
 """
     Perform the RK4 raytracing step
 """
-function rk4(startpoint::AbstractArray{T}, gradientvolume::AbstractArray{T}, stepsize::Number) where T
+function rk4(
+    startpoint::AbstractArray{T}, gradientvolume::AbstractArray{T}, stepsize::Number
+) where {T}
     gradientarray = gradientvolume # TODO Test if this works (without copy)
     gradientarraysize = collect(size(gradientarray))
     nextpoint = startpoint
-    nextPoint =  rk4step2d(gradientarray, startpoint, ones(T,2,), stepsize)
+    nextPoint = rk4step2d(gradientarray, startpoint, ones(T, 2), stepsize)
     return nextPoint
 end
 
 """
 Deprecated name for rk4step2d
     """
-function RK4STEP_2D(gradientArray::AbstractArray{T}, startPoint::AbstractArray{T}, nextPoint,stepSize) where T
-    rk4step2d(gradientArray, startPoint, nextPoint, stepSize)
+function RK4STEP_2D(
+    gradientArray::AbstractArray{T}, startPoint::AbstractArray{T}, nextPoint, stepSize
+) where {T}
+    return rk4step2d(gradientArray, startPoint, nextPoint, stepSize)
 end
-@deprecate RK4STEP_2D(gradientArray, startPoint, nextPoint, stepSize) rk4step2d(gradientarray, startpoint, nextpoint, stepsize)
+@deprecate RK4STEP_2D(gradientArray, startPoint, nextPoint, stepSize) rk4step2d(
+    gradientarray, startpoint, nextpoint, stepsize
+)
 """
     Perform one step of the RK4 algorithm
 """
-function rk4step2d(gradientarray::AbstractArray{T}, startpoint::AbstractArray{T}, nextpoint, stepsize) where T
-    k = ones(T,4,2)
-    temppoint = ones(T,2)
+function rk4step2d(
+    gradientarray::AbstractArray{T}, startpoint::AbstractArray{T}, nextpoint, stepsize
+) where {T}
+    k = ones(T, 4, 2)
+    temppoint = ones(T, 2)
     gradientarraysize = collect(size(gradientarray))
 
     # Calculate k1:k4
-    for ki = 1:4
-        @views interpgrad2d!(k[ki,:], gradientarray, gradientarraysize, startpoint)
-        @views tempnorm = max(norm(k[ki,:]),1e-6)
-        for p = 1:2
-            k[ki,p] *= stepsize/tempnorm
-            temppoint[p] = startpoint[p] - k[ki,p] * T(0.5)
+    for ki in 1:4
+        @views interpgrad2d!(k[ki, :], gradientarray, gradientarraysize, startpoint)
+        @views tempnorm = max(norm(k[ki, :]), 1e-6)
+        for p in 1:2
+            k[ki, p] *= stepsize / tempnorm
+            temppoint[p] = startpoint[p] - k[ki, p] * T(0.5)
         end
         # Check if still inside the domain
         if !checkBounds2d(temppoint, gradientarraysize)
-            return ones(T,2,)
+            return ones(T, 2)
         end
     end
-    
+
     # Calculate final point
-    for p = 1:2
-        nextpoint[p] = startpoint[p] - (k[1,p] + k[2,p] * T(2.0) + k[3,p] * T(2.0) + k[4,p])/T(6.0)
+    for p in 1:2
+        nextpoint[p] =
+            startpoint[p] -
+            (k[1, p] + k[2, p] * T(2.0) + k[3, p] * T(2.0) + k[4, p]) / T(6.0)
     end
 
     # Set step to step size
@@ -139,7 +152,7 @@ function rk4step2d(gradientarray::AbstractArray{T}, startpoint::AbstractArray{T}
 
     # Check the if are still inside the domain
     if !checkBounds2d(nextpoint, gradientarraysize)
-        return ones(T,2,)
+        return ones(T, 2)
     end
     return nextpoint
 end
