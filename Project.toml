@@ -1,7 +1,7 @@
 name = "FastMarching"
 uuid = "7c16e180-9f04-11e8-24a6-e7c7f74617b0"
 authors = ["Lars Hellemo <hellemo@gmail.com>"]
-version = "0.2.5"
+version = "0.2.6"
 
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"

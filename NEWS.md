@@ -1,5 +1,9 @@
 # Release notes for FastMarching
 
+## v0.2.6 (2021-03-09)
+
+- Registered
+
 ## v0.2.5 (2020-08-23)
 
 - Performance improvement (fix allocation issue)
