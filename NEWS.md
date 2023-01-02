@@ -1,5 +1,8 @@
 # Release notes for FastMarching
 
+## v0.2.7 (2023-01-02)
+- Bugfix for float indexing (#4)
+
 ## v0.2.6 (2021-03-09)
 
 - Registered
