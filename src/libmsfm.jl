@@ -112,12 +112,12 @@ function msfm!(
                 Ty = T(1)
                 # Update distance in neighbour list or add to neighbour list
                 if distanceimage[i, j] > 0
-                    if neg_list_1[distanceimage[i, j]] > Tt
-                        neg_list_1[distanceimage[i, j]] = Tt
+                    if neg_list_1[round(Int, distanceimage[i, j])] > Tt
+                        neg_list_1[round(Int, distanceimage[i, j])] = Tt
                     end
                     if Ed
-                        neg_list_4[distanceimage[i, j]] = min(
-                            Ty, neg_list_4[distanceimage[i, j]]
+                        neg_list_4[round(Int, distanceimage[i, j])] = min(
+                            Ty, neg_list_4[round(Int, distanceimage[i, j])]
                         )
                     end
                 else
